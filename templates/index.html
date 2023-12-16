@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fall Detection</title>
+</head>
+<body>
+    <h1>Fall Detection</h1>
+    <video id="videoElement" width="640" height="480" autoplay muted></video><br>
+    <button onclick="startDetection()">Start Detection</button>
+    <script>
+        async function startDetection() {
+            const videoElement = document.getElementById('videoElement');
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                videoElement.srcObject = stream;
+            } catch (err) {
+                console.error('Error accessing the camera:', err);
+                alert('Error accessing the camera. Please check your camera access permissions.');
+                return; // Stop execution if there's an error accessing the camera
+            }
+
+            fetch('/detect_video_stream', { method: 'GET' })
+                .then(response => response.json())
+                .then(data => {
+                    console.log(data);
+                    if (data.status === 'Fall Detected') {
+                        alert('Fall Detected! Video saved.');
+                    } else {
+                        alert('No Fall Detected.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error detecting fall. Please try again.');
+                });
+        }
+    </script>
+</body>
+</html>
