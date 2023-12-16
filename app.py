@@ -115,7 +115,7 @@ def save_video_frames(frames, file_path):
 
 @app.route('/')
 def index():
-    return render_template('index3.html')
+    return render_template('index.html')
 
 @app.route('/predict', methods=['POST'])
 def predict_fall():
