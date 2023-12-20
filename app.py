@@ -18,7 +18,7 @@ fall_detect = load_model(app.config['MODEL_FILE'], compile=False)
 
 # Google Cloud Storage Configuration
 storage_client = storage.Client.from_service_account_json(app.config['GOOGLE_APPLICATION_CREDENTIALS'])
-bucket_name = 'angelo-bucket'
+bucket_name = 'angelo-bucket-storage'
 bucket = storage_client.get_bucket(bucket_name)
 
 # Helper function to check allowed file extensions
@@ -27,13 +27,10 @@ def allowed_file(filename):
 
 # Function to perform fall detection on each frame of the video
 def detect_fall_in_frame(frame):
-    # Preprocess the frame if necessary (resize, normalize, etc.)
-    # Ensure the frame dimensions match the model's input requirements
 
-    # Example (Assuming your fall detection model takes input frames in the shape (150, 150, 3)):
     frame = cv2.resize(frame, (150, 150))
     frame = np.expand_dims(frame, axis=0)
-    frame = frame.astype(np.float32) / 255.0  # Adjust normalization as per your model
+    frame = frame.astype(np.float32) / 255.0
 
     # Perform fall detection on the frame using the loaded model
     classes = fall_detect.predict(frame)
@@ -183,12 +180,14 @@ def predict_fall_video():
         
         if fall_detected:
             file_url = save_video_to_cloud(file_name, file_path)  # Save video to Google Cloud Storage
+            uploaded_blob = bucket.blob(file_name)  # Get the blob reference of the uploaded video
             os.remove(file_path)  # Remove temporary file
+
             return jsonify({
                 'status': 'Fall Detected',
                 'file_url': file_url,
                 'file_name': file_name,
-                'upload_time': get_file_upload_time(blob)
+                'upload_time': get_file_upload_time(uploaded_blob)  # Use the uploaded_blob reference here
             }), 200
         else:
             os.remove(file_path)  # Remove temporary file if no fall detected
@@ -231,7 +230,7 @@ def detect_fall_on_video_stream():
                 elapsed_time = (cv2.getTickCount() - fall_start_time) / cv2.getTickFrequency()
                 frames.append(frame)
 
-                if elapsed_time >= 10.0:  # Capture 10 seconds (5 seconds before and after fall)
+                if elapsed_time >= 10.0:  # Capture 10 seconds
                     break
 
             out.write(frame)
@@ -241,7 +240,7 @@ def detect_fall_on_video_stream():
 
         if fall_detected and len(frames) > 0:
             file_name = 'fall_video_stream.avi'
-            file_path = 'fall_output.avi'
+            file_path = 'output.avi'
             save_video_frames(frames, file_path)
             file_url = save_video_to_cloud(file_name, file_path)
             os.remove(file_path)
