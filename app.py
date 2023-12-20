@@ -9,7 +9,7 @@ from tensorflow.keras.models import load_model
 
 app = Flask(__name__)
 app.config['ALLOWED_EXTENSIONS'] = set(['png', 'jpg', 'jpeg', 'mkv', 'mp4', 'm4v', 'mov', 'avi', 'asf', 'webm'])
-app.config['MODEL_FILE'] = 'models/fall_detection_model.h5'
+app.config['MODEL_FILE'] = 'models/fall_detection_fix_model.h5'
 app.config['SECRET_KEY'] = 'secret'
 app.config['GOOGLE_APPLICATION_CREDENTIALS'] = 'gcloud-credentials.json'
 
@@ -37,6 +37,23 @@ def detect_fall_in_frame(frame):
     
     # Return True if fall is detected, False otherwise
     if classes[0] < 0.85:  # Adjust threshold as per your model's performance
+        print("Jatuh")
+        return True
+    else:
+        print("Tidak Jatuh")
+        return False
+    
+def detect_fall_in_videostream(frame):
+
+    frame = cv2.resize(frame, (150, 150))
+    frame = np.expand_dims(frame, axis=0)
+    frame = frame.astype(np.float32) / 255.0
+
+    # Perform fall detection on the frame using the loaded model
+    classes = fall_detect.predict(frame)
+    
+    # Return True if fall is detected, False otherwise
+    if classes[0] > 0.4:  # Adjust threshold as per your model's performance
         print("Jatuh")
         return True
     else:
@@ -112,7 +129,7 @@ def save_video_frames(frames, file_path):
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('index2.html')
 
 @app.route('/predict', methods=['POST'])
 def predict_fall():
@@ -221,7 +238,7 @@ def detect_fall_on_video_stream():
             if start_time is None:
                 start_time = cv2.getTickCount()
 
-            frame_result = detect_fall_in_frame(frame)
+            frame_result = detect_fall_in_videostream(frame)
             if frame_result and not fall_detected:
                 fall_start_time = cv2.getTickCount()
                 fall_detected = True
@@ -261,6 +278,30 @@ def detect_fall_on_video_stream():
         return jsonify({
             'error': 'Error during video stream fall detection'
         }), 500
+
+
+@app.route('/process_video_stream', methods=['POST'])
+def process_video_stream():
+    data = request.get_json()
+    label = data['label']
+    bbox = data['bbox']
+
+    # Process label and bbox data as needed
+    # Perform fall detection on video stream frame
+    # Example:
+    frame = None  # Replace None with the frame data received from the front-end
+
+    if frame is not None:
+        fall_detected = detect_fall_in_videostream(frame)
+        
+        if fall_detected:
+            # Your response if fall is detected
+            return jsonify({'result': 'Fall Detected'}), 200
+        else:
+            # Your response if no fall is detected
+            return jsonify({'result': 'No Fall Detected'}), 200
+    else:
+        return jsonify({'error': 'Frame data not received or processed'}), 400
      
 # Route untuk menampilkan daftar file yang diunggah beserta informasi tanggal unggahnya
 @app.route('/files', methods=['GET'])
