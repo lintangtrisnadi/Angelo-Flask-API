@@ -36,7 +36,7 @@ def detect_fall_in_frame(frame):
     classes = fall_detect.predict(frame)
     
     # Return True if fall is detected, False otherwise
-    if classes[0] < 0.87:  # Adjust threshold as per your model's performance
+    if classes[0] < 0.85:  # Adjust threshold as per your model's performance
         print("Jatuh")
         return True
     else:
@@ -63,7 +63,7 @@ def perform_fall_detection(file, file_stream):
             data[0] = normalized_image_array
 
             classes = fall_detect.predict(data)
-            if classes[0] < 0.87:  # Adjust threshold as per your model's performance
+            if classes[0] < 0.85:  # Adjust threshold as per your model's performance
                 print("Jatuh")
                 return True, file_url
             else:
