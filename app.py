@@ -129,8 +129,9 @@ def save_video_frames(frames, file_path):
 
 @app.route('/')
 def index():
-    return render_template('index2.html')
+    return render_template('index.html')
 
+# Route to handle the uploaded image for fall detection
 @app.route('/predict', methods=['POST'])
 def predict_fall():
     if 'file' not in request.files:
@@ -163,6 +164,8 @@ def predict_fall():
             'error': 'Invalid file format'
         }), 400
     
+
+# Route to handle the uploaded image for fall detection
 @app.route('/predict_video', methods=['POST'])
 def predict_fall_video():
     if 'file' not in request.files:
@@ -216,6 +219,8 @@ def predict_fall_video():
             'error': 'Invalid file format'
         }), 400
 
+
+# Route to stream video from camera, detect fall, and save to Google Cloud Storage
 @app.route('/detect_video_stream', methods=['GET'])
 def detect_fall_on_video_stream():
     try:
@@ -262,11 +267,15 @@ def detect_fall_on_video_stream():
             file_url = save_video_to_cloud(file_name, file_path)
             os.remove(file_path)
 
+            # Get the blob reference of the uploaded video
+            uploaded_blob = bucket.blob(file_name)
+
+            # Return the uploaded time of the blob
             return jsonify({
                 'status': 'Fall Detected',
                 'file_url': file_url,
                 'file_name': file_name,
-                'upload_time': get_file_upload_time(blob)
+                'upload_time': get_file_upload_time(uploaded_blob)  # Use the uploaded_blob reference here
             }), 200
         else:
             os.remove('output.avi')
@@ -279,31 +288,8 @@ def detect_fall_on_video_stream():
             'error': 'Error during video stream fall detection'
         }), 500
 
-
-@app.route('/process_video_stream', methods=['POST'])
-def process_video_stream():
-    data = request.get_json()
-    label = data['label']
-    bbox = data['bbox']
-
-    # Process label and bbox data as needed
-    # Perform fall detection on video stream frame
-    # Example:
-    frame = None  # Replace None with the frame data received from the front-end
-
-    if frame is not None:
-        fall_detected = detect_fall_in_videostream(frame)
-        
-        if fall_detected:
-            # Your response if fall is detected
-            return jsonify({'result': 'Fall Detected'}), 200
-        else:
-            # Your response if no fall is detected
-            return jsonify({'result': 'No Fall Detected'}), 200
-    else:
-        return jsonify({'error': 'Frame data not received or processed'}), 400
-     
-# Route untuk menampilkan daftar file yang diunggah beserta informasi tanggal unggahnya
+   
+# Route to display a list of uploaded files along with their upload dates information
 @app.route('/files', methods=['GET'])
 def list_files():
     blobs = storage_client.list_blobs(bucket_name)
@@ -319,7 +305,8 @@ def list_files():
 
     return jsonify({'files': files})
 
-# Route untuk menampilkan informasi spesifik mengenai satu file
+
+# Route to display specific information about a single file
 @app.route('/files/<filename>', methods=['GET'])
 def get_file_info(filename):
     blob = bucket.blob(filename)
